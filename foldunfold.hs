@@ -210,6 +210,15 @@ foldFG :: (Functor f) => (f r -> r) -> Mu f -> r
 foldFG g (In x)  = g ( fmap (foldFG g) x)
 
 {-
+     F (Mu F) ---- F (fold g) -----> F X 
+      |                               |
+      |                               |
+     in                               g
+      |                               |
+      |                               |
+      v                               v
+     Mu F -------- fold g ----------> X
+
 because 
 
 A beneficial side-effect of separating out the recursion in the
@@ -312,6 +321,7 @@ consbf x xs = InB (ConsF x xs)
 testln = do
   print $ length (consbf "c" (consbf "a" (consbf "b" nilbf)))
 
+-- see bottom of http://www.prg.nii.ac.jp/course/2013/springCourse/source/lecture1.lhs for more deriving like below
 deriving instance Show (f (Mu f)) => Show (Mu f)
 
 lf = consf 10 (consf 9 (consf 8 (consf 7 (consf 6 (consf 5 (consf 4 (consf 3 (consf 2 (consf 1 nilf)))))))))
