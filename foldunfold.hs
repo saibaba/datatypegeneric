@@ -1,5 +1,6 @@
 -- http://blog.ezyang.com/2012/10/duality-for-haskellers/
 -- https://kseo.github.io/posts/2016-12-12-unfold-and-fold.html
+-- http://www.prg.nii.ac.jp/course/2013/springCourse/source/lecture1.lhs
 
 {-# OPTIONS -XStandaloneDeriving -XFlexibleContexts -XUndecidableInstances #-}
 
