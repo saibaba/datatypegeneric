@@ -309,6 +309,24 @@ instance Bifunctor ListF where
   bimap f g NilF  = NilF
   bimap f g (ConsF x xs) = ConsF (f x) (g xs)
 
+{-
+
+With bifunctor, the commuting square becomes:
+
+Here B = bifunctor (replacing F, functor)
+
+
+    B a (Mu B a) ---- bimap id (fold g) -----> B a X 
+      |                                          |
+      |                                          |
+     in                                          g
+      |                                          |
+      |                                          |
+      v                                          v
+    Mu B a   --------- fold g -----------------> X
+
+-}
+
 -- an example
 
 length :: MuB ListF a -> Int
