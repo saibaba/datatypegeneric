@@ -158,8 +158,6 @@ instance Bifunctor f => Functor (Mu2 f) where
   fmap f = fold''' (In2 . bimap f id)
 -}
 
-deriving instance Show (f (Mu1 f)) => Show (Mu1 f)
-deriving instance Show (f a (Mu2 f a)) => Show (Mu2 f a)
 
 test6 = do
   print $ sum (fmap (\x -> x + (100::Integer)) (icons2 1 (icons2 2 (icons2 3 (icons2 4 (icons2 5 (In2 NilF)))))))
@@ -179,12 +177,41 @@ map :: Bifunctor s => (a->b) -> (Mu2 s a) -> (Mu2 s b)
 
 map f (In2 x) = In2 (bimap f (map f) x)
 
+
 Happy now?
+
+- how do I dualise it?
+
+-}
+data Nu2 f a = Out_ { out :: f a (Nu2 f a) }
+
+unfold''' :: Bifunctor f => (b -> f a b) -> b -> Nu2 f a
+unfold''' phi = Out_ . bimap id (unfold''' phi) . phi
+
+instance Bifunctor f => Functor (Nu2 f) where
+  fmap f = unfold''' (bimap f id . out)
+
+type Colist a = Nu2 ListF a
+range :: (Int,Int) -> Colist Int
+range = unfold''' next where
+  next (m,n) = if m==n then NilF else ConsF m (m+1,n)
+
+test7 = do
+  print $ range (1,3)
+
+test8 = do
+  print $ range (1,0)
+
+{-
 - well, a couple of things nagging me, how do we know it all works?
+- where is the theoretical backing for all this? Bifunctor coherence conditions proof?
 -}
 
+deriving instance Show (f (Mu1 f)) => Show (Mu1 f)
+deriving instance Show (f a (Mu2 f a)) => Show (Mu2 f a)
+deriving instance (Show a, Show b) => Show (ListF a b)
+deriving instance Show (f a (Nu2 f a)) => Show (Nu2 f a)
 
--- we have not implemented fmap yet making f functorial yet !!!! we could leverage that... i.e, do a step of ...
 main = do
   test1
   test2 
@@ -192,3 +219,5 @@ main = do
   test4 
   test5 
   test6 
+  test7 
+  -- test8  -- will print forever
