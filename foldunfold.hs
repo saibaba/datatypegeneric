@@ -9,7 +9,10 @@ import Prelude hiding(foldr, sum, length, fmap, Functor)
 
 {-
 
-Study the eelationship between fold, unfold, and Mu using category theory.
+Study the relationship between fold, unfold, and Mu using category theory.
+More importantly reason about them in an algebraic way - which requres us to separate
+recursion from shape.
+So, goal is separate recursion from the form/shape of data structure.
 
 -}
 

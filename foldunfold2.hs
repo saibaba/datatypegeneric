@@ -173,8 +173,8 @@ instance Bifunctor f => Functor (Mu2 f) where
 
 instance Bifunctor f => Functor (Mu2 f) where
   fmap f = fold''' (In2 . bimap f id)
-map :: Bifunctor s => (a->b) -> (Mu2 s a) -> (Mu2 s b)
 
+map :: Bifunctor s => (a->b) -> (Mu2 s a) -> (Mu2 s b)
 map f (In2 x) = In2 (bimap f (map f) x)
 
 
@@ -197,7 +197,7 @@ range = unfold''' next where
   next (m,n) = if m==n then NilF else ConsF m (m+1,n)
 
 test7 = do
-  print $ range (1,3)
+  print $ range (1, 10)
 
 test8 = do
   print $ range (1,0)
