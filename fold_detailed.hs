@@ -1,5 +1,6 @@
 {-# OPTIONS -XFlexibleInstances #-}
 
+-- In the whole discussion below, ListR and ListX are the critical to understand.
 
 import Prelude hiding(sum, Functor, fmap)
 
@@ -20,11 +21,10 @@ test1 = do
 
 -- how do we make fold recurse without knowing the shape of List? use type constructor
 
--- notice 'e' after 'f a' rather than other way around, it helps later in converting Holder into functor
 
 data Holder f a e = Holder (f a) e Bool deriving Show
-
-
+-- notice 'e' after 'f a' rather than other way around, it helps later in converting Holder into functor
+-- Bool field at the end is used as an indication to fold if recrusion should be terminated.
  
 fold2 :: b -> (b -> f a -> Holder f a b) -> f a -> b
 fold2 e g m = if r then (fold2 ne g nm) else ne
@@ -54,6 +54,16 @@ step :: (Holder List a b -> b) -> b -> List a -> Holder List a b
 step s e (Cons i xs) = Holder xs (s (Holder (Cons i xs) e False) ) True
 step s e Nil = Holder Nil (s (Holder Nil e False) ) False
 
+{-
+Idea of step is that fold and step recurse back and forth (mutual recursion) to remove one element at a time from the right and create a new initial value
+
+[1,2,3,4,5], 0
+[1,2,3,4], 5
+[1,2,3], 9
+
+and so on...
+-}
+
 sum3 :: Holder List Int Int -> Int
 sum3 (Holder (Cons a xs) e _)  = a + e
 sum3 (Holder Nil e _) = e
@@ -73,7 +83,7 @@ runtest4 = do
   print test4
 
 -- the functions like sum3, len3 already know what the initial values are, they need not be told. Let's fix it.
-
+-- also Holder is now holding data for two different reasons: recurse or not; current state (current rolled up value; remaining (list) items. let's separate them too.
 
 data Cursor f a e = Cursor (f a) e deriving Show
 
@@ -81,18 +91,20 @@ fold3 :: (f a -> Cursor f a b) -> f a -> b
 fold3 g m = ne
   where Cursor nm ne = g m
 
-data Data f a b = Data1 (f a) b | Data2 (f a) deriving Show
+data Data f a b = Data1 (f a) b | NilD deriving Show
 
 step2 :: (Data List a b -> b) -> List a -> Cursor List a b
 step2 s (Cons i xs) = Cursor xs rolled
   where inner = fold3 (step2 s) xs
         rolled = s (Data1 (Cons i Nil) inner )
 step2 s Nil = Cursor Nil rolled
-  where rolled = s (Data2 Nil)
+  where rolled = s NilD
+
+-- step uses cursor to send info up to fold; step uses data to send info down to sum
 
 sum4 :: Data List Int Int -> Int
-sum4 (Data1 (Cons a xs) e )  = a + e
-sum4 (Data2 Nil ) = 0
+sum4 (Data1 (Cons a xs) e )  = a + e   -- information (xs) leakage
+sum4 NilD = 0
 
 test5  = fold3 (step2 sum4) list1
 
@@ -101,14 +113,16 @@ runtest5 = do
   print test5
 
 len4:: Data List Int Int -> Int
-len4 (Data1 (Cons a xs) e ) = 1 + e  -- (1) 
-len4 (Data2 Nil ) = 0
+len4 (Data1 (Cons a xs) e ) = 1 + e  -- (1)
+len4 NilD = 0
 
 test6  = fold3 (step2 len4) list1
 
 runtest6 = do
   print "Test 6"
   print test6
+
+-- Cursor does not seem to be useful after all. Let's remove it.
 
 fold4 :: (f a -> b) -> f a -> b
 fold4 g m = g m
@@ -117,7 +131,9 @@ step3 :: (Data List a b -> b) -> List a -> b
 step3 s (Cons i xs) = rolled
   where inner = fold4 (step3 s) xs
         rolled = s (Data1 (Cons i Nil) inner )
-step3 s Nil = s (Data2 Nil)
+step3 s Nil = s NilD
+
+-- Alas, we now made step do two things just like fold used to do!
 
 test7  = fold4 (step3 sum4) list1
 
@@ -134,8 +150,7 @@ runtest8 = do
 {-
 
 Why bother client of fold to know about existence of step function.
-We could delegate that work to type being folded (List). It will implement a well defined interface and fold internally adds step
-based on knowing that the 'folded' implements it.
+We could delegate that work to type being folded (List). It will implement a well defined interface and fold internally adds step based on knowing that the 'folded' implements it.
 -}
 
 fold5 :: Whatever f => (Data f a b -> b) -> f a -> b
@@ -148,7 +163,7 @@ instance Whatever List where
   stepr s (Cons i xs) = rolled
     where inner = fold5 s xs
           rolled = s (Data1 (Cons i Nil) inner )  -- (2)
-  stepr s Nil = s (Data2 Nil)
+  stepr s Nil = s NilD
 
 test9  = fold5 sum4 list1
 
@@ -254,13 +269,17 @@ data ListF a b = ConsF a b | NilF deriving Show
 Represent recursion by instantiating b as 'ListF a' ad infinitum but then break by terminal condition:
 
  
-Also whatever3 is almost like a functor, but not convertable yet.
+Also whatever3 is almost like a functor, but not convertable to one yet.
 
 -}
 
 data ListF a b = ConsF a b | NilF deriving Show
 
-data ListX a = InX (ListF a (ListX a))
+-- instantiate 'b' in ListF with self to handle recursion
+data ListX a = InX (ListF a (ListX a))   
+-- InX because data needs a constructor name;
+-- Also, you cannot do recursion with pure type aliasing 'type ListX a = ListF a (ListX a)' is not allowed
+-- so you cannot avoid using data.
 
 list3::ListX Int
 list3 = InX (ConsF 3 (InX (ConsF 4 (InX (ConsF 5 (InX NilF))))))
