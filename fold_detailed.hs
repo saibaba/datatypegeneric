@@ -1,8 +1,8 @@
-{-# OPTIONS -XFlexibleInstances #-}
+{-# OPTIONS -XFlexibleInstances -XStandaloneDeriving #-}
 
 -- In the whole discussion below, ListR and ListX are the critical to understand.
 
-import Prelude hiding(sum, Functor, fmap)
+import Prelude hiding(map, sum, Functor, fmap)
 
 class Functor f where
   fmap :: (a->b) -> f a -> f b
@@ -368,7 +368,7 @@ class Bifunctor f where
 
 instance Bifunctor ListF where
   bimap f1 f2 NilF = NilF
-  bimap f1 f2 (ConsF i a) = ConsF (f1 i) (f2 a)
+  bimap f1 f2 (ConsF i a) = ConsF (f1 i) (f2 a)    --- (3)
 
 fold11 :: Bifunctor f => (f a e -> e) -> Mu f a -> e
 fold11 g (In m) = g ( bimap id (fold11 g) m )
@@ -384,6 +384,30 @@ test22  = fold11 len6 list4
 runtest22 = do
   print "Test 22"
   print test22
+
+-- As container, List still maintains its 'map' feature...
+
+map :: Bifunctor f => (a -> b) -> Mu f a -> Mu f b
+map f (In x)  = In (bimap f (map f) x)   -- see eqn (3)
+
+test23 = fold11 sum6 (map (\x -> x + 1) list4)
+
+runtest23 = do
+  print "Test 23"
+  print test23
+
+-- How'bout unfold?
+
+unfold :: Bifunctor f => (b -> f a b) -> f a b -> Mu f a
+unfold f (In x) = bimap id (unfold f) x 
+
+{-
+range m n = unfold next
+  where next = if (m == n)
+                 NilF
+               else
+                 ConsF m (m+1, n)
+-}
 
 -- main
 
@@ -410,4 +434,5 @@ main = do
   runtest20
   runtest21
   runtest22
+  runtest23
 
