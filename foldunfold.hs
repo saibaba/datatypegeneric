@@ -37,7 +37,7 @@ test1 = foldr (\e c -> e + c) 0 l1
 {-
 
 If you look at above foldr, it takes 3 arguments: (a -> r -> r),  r, List a. 
-Except for  the last/list arg, the remaining do not have a good representation in category theory.
+Except for  the last/list arg, the remaining do not have a good representation as an arrow.
 
 What we could do is create another function that takes categorical product (pair or comma or any bifunctor) of 'a' and 'r' as a single argument.
 And we change fold to take this function itself as argument and returns combined 'r'.
@@ -54,6 +54,10 @@ gM :: Maybe (Int, Int) -> Int
 gM (Just (x, xs)) = (\e c -> e + c) x xs
 gM Nothing = 0
 
+-- gM is a function from Maybe (Int, Int) to Int.  It has hard coded function for adding the two parts of pair and return the sum. That is all.
+
+-- So, xs above is not a list but somehow already reduced - hence the (\e c -> e + c) is simply acting on reduced value. Continue reading for more clarity on this.
+
 -- Notice, that since the function gM, that reduces two values into one is specific to type of values being folded, it is not a generic function (i.e., does not use type parameters)
 
 -- Now the new fold that takes the Functor in the input
@@ -61,6 +65,8 @@ gM Nothing = 0
 foldM :: (Maybe (a, r) -> r) -> List a -> r
 foldM g Nil = g Nothing  --- has to return the initial r
 foldM g (Cons x xs) = g (Just (x, (foldM g xs)))
+
+-- see how the second component of pair, (foldM g xs) already reducing before giving to the folding function, g.
 
 test2 = foldM gM l1
 
